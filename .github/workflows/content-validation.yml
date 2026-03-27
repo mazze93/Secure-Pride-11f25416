@@ -1,0 +1,70 @@
+name: Content validation
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          check-latest: true
+
+      - name: Detect package manager
+        id: pm
+        run: |
+          if [ -f pnpm-lock.yaml ]; then
+            echo "pm=pnpm" >> "$GITHUB_OUTPUT"
+          elif [ -f yarn.lock ]; then
+            echo "pm=yarn" >> "$GITHUB_OUTPUT"
+          elif [ -f package-lock.json ]; then
+            echo "pm=npm" >> "$GITHUB_OUTPUT"
+          else
+            echo "pm=npm" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install dependencies
+        run: |
+          set -euo pipefail
+          pm="${{ steps.pm.outputs.pm }}"
+          if [ "$pm" = "pnpm" ]; then
+            corepack enable
+            pnpm install --frozen-lockfile
+          elif [ "$pm" = "yarn" ]; then
+            corepack enable
+            yarn install --frozen-lockfile
+          elif [ "$pm" = "npm" ] && [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
+
+      - name: Build (content + schema validation)
+        run: |
+          pm="${{ steps.pm.outputs.pm }}"
+          if [ "$pm" = "pnpm" ]; then
+            pnpm run build
+          elif [ "$pm" = "yarn" ]; then
+            yarn build
+          else
+            npm run build
+          fi
