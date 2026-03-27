@@ -76,8 +76,8 @@
       <line x1="84"  y1="143" x2="107" y2="157" stroke="#E6C98A" stroke-width="0.85" opacity="0.05"/>
     </g>
     <g id="prism-capture">
-      <!-- 1 prism fragment only -->
-      <line x1="87" y1="148" x2="100" y2="144" stroke="url(#prism-m)" stroke-width="1.1" opacity="0.12"/>
+      <!-- 1 prism fragment only — extended and raised to top of spec so it actually registers at this scale -->
+      <line x1="84" y1="150" x2="102" y2="144" stroke="url(#prism-m)" stroke-width="1.3" opacity="0.14"/>
     </g>
   </g>
 </svg>

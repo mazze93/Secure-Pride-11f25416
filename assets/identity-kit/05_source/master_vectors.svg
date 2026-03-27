@@ -76,7 +76,7 @@
       fill="none"
       stroke="#C4A464"
       stroke-width="1.5"
-      opacity="0.35"/>
+      opacity="0.45"/>
   </g>
 
   <!-- ═══════════════════════════════════════════
@@ -153,10 +153,10 @@
          Think: light caught on specific damaged edges
     -->
     <g id="prism-capture">
-      <line x1="350" y1="590" x2="400" y2="578" stroke="url(#prism-a)" stroke-width="3.0" opacity="0.11"/>
-      <line x1="364" y1="643" x2="418" y2="628" stroke="url(#prism-b)" stroke-width="2.5" opacity="0.13"/>
-      <line x1="388" y1="700" x2="432" y2="684" stroke="url(#prism-c)" stroke-width="3.5" opacity="0.09"/>
-      <line x1="344" y1="622" x2="374" y2="610" stroke="url(#prism-a)" stroke-width="2.0" opacity="0.10"/>
+      <line x1="350" y1="590" x2="400" y2="578" stroke="url(#prism-a)" stroke-width="3.0" opacity="0.14"/>
+      <line x1="364" y1="643" x2="418" y2="628" stroke="url(#prism-b)" stroke-width="2.5" opacity="0.14"/>
+      <line x1="388" y1="700" x2="432" y2="684" stroke="url(#prism-c)" stroke-width="3.5" opacity="0.12"/>
+      <line x1="344" y1="622" x2="374" y2="610" stroke="url(#prism-a)" stroke-width="2.0" opacity="0.13"/>
     </g>
 
   </g>

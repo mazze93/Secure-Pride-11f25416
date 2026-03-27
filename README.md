@@ -38,6 +38,8 @@ For many communities:
 
 > All contributions must meet Secure Pride standards for privacy, accessibility, and production readiness.
 
+Licensed under the [Apache License, Version 2.0](LICENSE).
+
 ---
 
 ## 🧱 What We Build

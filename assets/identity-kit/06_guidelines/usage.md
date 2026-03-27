@@ -66,11 +66,11 @@ Maintain a minimum clear space of 12% of the logo width on all sides. Do not cro
 
 ## Background Rules
 
-- **Preferred:** `#0B0F14` (base field) or near-black
+- **Preferred:** `#0B0F14` (base field) or near-black for the brass master
 - **Acceptable:** Any dark surface where brass reads clearly
-- **Mono dark (`#FFFFFF`):** Use on dark surfaces only
-- **Mono light (`#0B0F14`):** Use on light surfaces only
-- **Avoid:** Busy photographic backgrounds, mid-tone greys that flatten contrast
+- **Mono dark (`#FFFFFF`):** Use on any dark surface — the shackle and keyhole are genuine transparent knockouts (SVG luminance mask), so the background shows through correctly on any dark color, not only `#0B0F14`
+- **Mono light (`#0B0F14`):** Use on any light surface — same knockout technique; works on off-white, cream, light grey, etc.
+- **Avoid:** Busy photographic backgrounds, mid-tone greys that flatten contrast between logo and surface
 
 ---
 
