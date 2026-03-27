@@ -40,6 +40,13 @@
     <path d="M 128,37 C 168,37 203,52 208,93 C 213,134 181,181 128,222 C 75,181 43,134 48,93 C 53,52 88,37 128,37 Z"
       fill="#FFFFFF"/>
 
+    <!-- Inner frame (~12% inset) — same structural depth cue as brass master.
+         12% black at stroke-opacity creates a faint tonal arc that reads as a
+         raised border without introducing a second colour. -->
+    <path d="M 128,52 C 162,52 193,64 197,97 C 201,130 174,175 128,209
+             C 82,175 55,130 59,97 C 63,64 94,52 128,52 Z"
+      fill="none" stroke="#000000" stroke-width="0.7" stroke-opacity="0.12"/>
+
     <!-- Heart body -->
     <path d="M 128,162
              C 108,153 98,140 98,130
