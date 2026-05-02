@@ -1,6 +1,30 @@
+# macOS
 .DS_Store
-*/.DS_Store
+**/.DS_Store
+
+# Editor / tooling
 .vscode/
+.claude/
 *.jam
 .superpowers/
+
+# Build artefacts & caches
+node_modules/
+.wrangler/
+dist/
+.cache/
+
+# Reports & generated output
 lighthouse-report.json
+
+# Archives — review locally before re-adding
+*.zip
+*.tar.gz
+*.tar.bz2
+
+# Sensitive docs — store in a secrets manager or encrypted vault, not git
+docs/*.pdf
+docs/brand/*.docx
+
+# Staging inbox — clear after importing, never commit
+assets/incoming-*/
