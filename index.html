@@ -136,23 +136,51 @@
             </div>
         </div>
 
-        <!-- Right Column: Audit Feed (rainbow border) -->
+        <!-- Right Column: AI Safety Scanner (rainbow border) -->
         <div class="audit-section">
             <div class="audit-card-rainbow">
                 <div class="audit-card">
                     <div class="audit-header">
-                        <h2 class="audit-title">Credential Registry Audit</h2>
-                        <span class="audit-status-label">M3 ACCELERATED</span>
+                        <h2 class="audit-title">AI Safety Scanner</h2>
+                        <span class="audit-status-label">LIVE</span>
                     </div>
-                    <div id="auditFeed" class="findings-container">
+                    <div class="scan-input-area">
+                        <label for="scanInput" class="scan-input-label">
+                            Paste text to scan — email draft, AI prompt, message containing member info
+                        </label>
+                        <textarea
+                            id="scanInput"
+                            class="scan-textarea"
+                            rows="6"
+                            maxlength="50000"
+                            aria-label="Text to scan for PII and prompt injection"
+                            aria-describedby="scanInputHint"
+                            placeholder="Paste your text here…"
+                        ></textarea>
+                        <p id="scanInputHint" class="scan-input-hint">
+                            Your text is never stored or logged. Max 50,000 characters.
+                        </p>
+                    </div>
+                    <div
+                        id="auditFeed"
+                        class="findings-container"
+                        role="status"
+                        aria-live="polite"
+                        aria-label="Scan results"
+                    >
                         <div class="scan-placeholder">
-                            <p class="scan-placeholder-text">Waiting for scan initialization...</p>
-                            <p class="scan-placeholder-subtext">Scanning Keychain, Certificates, and Secure Notes</p>
+                            <p class="scan-placeholder-text">Paste text above to begin scanning</p>
+                            <p class="scan-placeholder-subtext">Detects PII, credentials, and prompt injection patterns</p>
                         </div>
                     </div>
-                    <button id="initScanBtn" class="btn-support btn-full">
-                        INITIALIZE SCAN
-                    </button>
+                    <div class="audit-actions">
+                        <button id="initScanBtn" class="btn-support" disabled aria-busy="false">
+                            RUN SCAN
+                        </button>
+                        <button id="clearBtn" class="btn-clear" type="button">
+                            CLEAR
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
