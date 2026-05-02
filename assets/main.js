@@ -1,24 +1,12 @@
 'use strict';
 
 // ==========================================
-// Mock Audit Data: Secure Pride Standards
-// ==========================================
-const mockData = [
-    { id: "CERT_001", name: "Legacy TLS Profile",       detail: "SHA-1 / RSA-1024",          status: "fail", score: -15 },
-    { id: "PROT_001", name: "Corporate Intranet",        detail: "Insecure Protocol (HTTP)",   status: "warn", score:  -5 },
-    { id: "CERT_002", name: "Apple Root CA",             detail: "System Verified",            status: "pass", score:  10 },
-    { id: "KEY_882",  name: "Development SSH Key",       detail: "ED25519 (Modern)",           status: "pass", score:  20 },
-    { id: "NOTE_01",  name: "Financial Recovery Codes",  detail: "Unencrypted Note",           status: "fail", score: -20 },
-];
-
-// ==========================================
-// Bayesian Confidence Gauge Update
+// Confidence Gauge
 // ==========================================
 function updateGauge(percent) {
     const circle = document.getElementById('confidenceGauge');
     const circumference = 2 * Math.PI * 70;
     circle.style.strokeDashoffset = circumference - (percent / 100) * circumference;
-
     document.getElementById('confidenceValue').textContent = `${Math.round(percent)}%`;
 
     const postureEl = document.getElementById('postureStatus');
@@ -29,7 +17,7 @@ function updateGauge(percent) {
 }
 
 // ==========================================
-// Build a single finding card via DOM API
+// Finding card builder (reused for real results)
 // ==========================================
 function buildFindingCard(item) {
     const scoreClass = item.status === 'pass' ? 'score-pass'
@@ -71,64 +59,174 @@ function buildFindingCard(item) {
 }
 
 // ==========================================
-// Audit Feed Renderer
+// Render real DLP scan results
 // ==========================================
-function renderAuditFeed() {
+function renderScanResults(result) {
     const feed = document.getElementById('auditFeed');
     feed.replaceChildren();
 
-    let totalScore = 40; // Base confidence
-    let legacyCount = 0;
+    if (result.blocked) {
+        const banner = document.createElement('div');
+        banner.className = 'scan-blocked-banner';
+        banner.setAttribute('role', 'alert');
+        banner.textContent = 'Scan blocked — sensitive content detected. Do not send this text to an AI service.';
+        feed.appendChild(banner);
+    }
 
-    mockData.forEach((item, index) => {
-        if (item.status !== 'pass') legacyCount++;
-
+    result.injections.forEach((inj, i) => {
+        const status = (inj.severity === 'critical' || inj.severity === 'high') ? 'fail' : 'warn';
+        const score  = inj.severity === 'critical' ? -25 : inj.severity === 'high' ? -20 : -10;
         setTimeout(() => {
-            feed.appendChild(buildFindingCard(item));
-            totalScore = Math.max(0, Math.min(100, totalScore + item.score));
-            updateGauge(totalScore);
-        }, index * 150);
+            feed.appendChild(buildFindingCard({
+                name:   inj.pattern_name.replace(/_/g, ' ').toUpperCase(),
+                detail: inj.description,
+                status,
+                score,
+            }));
+        }, i * 120);
     });
 
-    setTimeout(() => {
-        document.getElementById('totalCreds').textContent = mockData.length;
+    const offset = result.injections.length;
+    result.pii_matches.forEach((pii, i) => {
+        setTimeout(() => {
+            feed.appendChild(buildFindingCard({
+                name:   pii.pii_type.replace(/_/g, ' ').toUpperCase(),
+                detail: `Masked: ${pii.masked}`,
+                status: 'warn',
+                score:  -8,
+            }));
+        }, (offset + i) * 120);
+    });
 
-        const legacySpan = document.createElement('span');
-        legacySpan.className = 'text-magenta';
-        legacySpan.textContent = legacyCount;
-        document.getElementById('legacyCount').replaceChildren(legacySpan);
-    }, mockData.length * 150);
+    if (!result.blocked && result.injection_count === 0 && result.pii_count === 0) {
+        feed.appendChild(buildFindingCard({
+            name:   'No threats detected',
+            detail: 'Text is safe to use with AI services',
+            status: 'pass',
+            score:  30,
+        }));
+    }
+
+    // Update sidebar stats
+    document.getElementById('totalCreds').textContent =
+        result.injection_count + result.pii_count;
+
+    const legacySpan = document.createElement('span');
+    legacySpan.className = 'text-magenta';
+    legacySpan.textContent = result.injection_count;
+    document.getElementById('legacyCount').replaceChildren(legacySpan);
+
+    // Gauge target — delayed until cards finish animating in
+    const gaugeTarget = result.blocked ? 20 : result.pii_count > 0 ? 55 : 85;
+    const delay = (result.injection_count + result.pii_count) * 120 + 100;
+    setTimeout(() => updateGauge(gaugeTarget), delay);
 }
 
 // ==========================================
-// Async Scan Simulation with Bayesian Processing
+// Inline error display
+// ==========================================
+function renderError(message) {
+    const feed = document.getElementById('auditFeed');
+    const p = document.createElement('p');
+    p.className = 'scan-placeholder-text';
+    p.textContent = message;
+    const card = document.createElement('div');
+    card.className = 'scan-placeholder';
+    card.appendChild(p);
+    feed.replaceChildren(card);
+    updateGauge(0);
+}
+
+// ==========================================
+// Main scan — calls live /api/scan
 // ==========================================
 async function startAudit() {
+    const textarea = document.getElementById('scanInput');
+    const btn      = document.getElementById('initScanBtn');
+    const text     = textarea.value.trim();
+    if (!text) return;
+
+    // Loading state
     const feed = document.getElementById('auditFeed');
-
-    const text = document.createElement('p');
-    text.className = 'scan-placeholder-text';
-    text.textContent = 'Starting credential scan...';
-
-    const subtext = document.createElement('p');
-    subtext.className = 'scan-placeholder-subtext';
-    subtext.textContent = 'Bayesian inference in progress';
-
-    const placeholder = document.createElement('div');
+    const loadingText    = document.createElement('p');
+    loadingText.className = 'scan-placeholder-text';
+    loadingText.textContent = 'Scanning…';
+    const loadingSubtext    = document.createElement('p');
+    loadingSubtext.className = 'scan-placeholder-subtext';
+    loadingSubtext.textContent = 'Checking for PII and injection patterns';
+    const placeholder    = document.createElement('div');
     placeholder.className = 'scan-placeholder pulse';
-    placeholder.appendChild(text);
-    placeholder.appendChild(subtext);
-
+    placeholder.appendChild(loadingText);
+    placeholder.appendChild(loadingSubtext);
     feed.replaceChildren(placeholder);
 
-    await new Promise(r => setTimeout(r, 800));
-    renderAuditFeed();
+    btn.disabled = true;
+    btn.setAttribute('aria-busy', 'true');
+    updateGauge(0);
+
+    try {
+        const response = await fetch('/api/scan', {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify({ text, actor_id: 'anonymous' }),
+        });
+
+        if (response.status === 429) {
+            renderError('Too many requests — please wait a moment and try again.');
+            return;
+        }
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}));
+            renderError(err.detail || 'Scanner error — please try again.');
+            return;
+        }
+
+        const result = await response.json();
+        renderScanResults(result);
+    } catch {
+        renderError('Scanner unavailable — check your connection.');
+    } finally {
+        btn.disabled = false;
+        btn.setAttribute('aria-busy', 'false');
+    }
 }
 
 // ==========================================
-// Initialization
+// Clear handler
+// ==========================================
+function clearScanner() {
+    document.getElementById('scanInput').value = '';
+    document.getElementById('initScanBtn').disabled = true;
+    updateGauge(0);
+    document.getElementById('totalCreds').textContent = '--';
+    document.getElementById('legacyCount').textContent = '--';
+
+    const p1 = document.createElement('p');
+    p1.className = 'scan-placeholder-text';
+    p1.textContent = 'Paste text above to begin scanning';
+    const p2 = document.createElement('p');
+    p2.className = 'scan-placeholder-subtext';
+    p2.textContent = 'Detects PII, credentials, and prompt injection patterns';
+    const placeholder = document.createElement('div');
+    placeholder.className = 'scan-placeholder';
+    placeholder.appendChild(p1);
+    placeholder.appendChild(p2);
+    document.getElementById('auditFeed').replaceChildren(placeholder);
+}
+
+// ==========================================
+// Init
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
     updateGauge(0);
-    document.getElementById('initScanBtn').addEventListener('click', startAudit);
+
+    const textarea = document.getElementById('scanInput');
+    const btn      = document.getElementById('initScanBtn');
+
+    textarea.addEventListener('input', () => {
+        btn.disabled = textarea.value.trim().length === 0;
+    });
+
+    btn.addEventListener('click', startAudit);
+    document.getElementById('clearBtn').addEventListener('click', clearScanner);
 });
