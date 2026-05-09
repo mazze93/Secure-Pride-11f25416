@@ -6,6 +6,9 @@
 .vscode/
 .claude/
 *.jam
+*.swp
+*.swo
+*~
 .superpowers/
 
 # Build artefacts & caches
