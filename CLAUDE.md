@@ -1,31 +1,33 @@
-# Secure Pride — Claude Context
+# Secure Pride — Claude Code Context
 
-> Full context: `~/.claude/projects/-Users-daedalus/memory/secure-pride.md`
-> Canonical AI instructions: `docs/COPILOT-INSTRUCTIONS.md`
+This file is a short project index for Claude Code.
+Canonical operating policy lives in @docs/COPILOT-INSTRUCTIONS.md.
+If this file conflicts with the shared instructions, @docs/COPILOT-INSTRUCTIONS.md wins.
 
-## Authority Tiers
-- **Autonomous**: Architecture, refactoring, tests, docs, library recommendations, security per standards
-- **Document first**: Schema changes, auth decisions, UX/a11y, third-party integrations, infra
-- **Escalate (wait)**: SOGI data handling, external credentials, third-party data sharing, policy/legal
+## Project purpose
+- Secure Pride is a privacy-first cybersecurity and safety platform for LGBTQ communities.
+- Prioritize privacy, accessibility, minimal data collection, and low-cognitive-load UX.
+- Preserve pseudonymous participation and avoid designs that increase exposure risk for marginalized users.
 
-## Non-Negotiable Security Rules
-- No telemetry, no tracking, no exceptions
-- TLS 1.3+ all network comms; HTTPS + HSTS
-- AES-256-GCM at rest for SOGI data; Web Crypto API preferred client-side
-- No wildcard CORS; strict CSP headers
-- No real-name enforcement; pseudonymous accounts supported
+## Working style
+- Prefer small, reversible changes over broad rewrites.
+- Match existing project conventions, architecture, and dependency choices.
+- Keep documentation updated when behavior, architecture, or security assumptions change.
+- For non-trivial work, present a short plan before implementation.
 
-## SOGI Data
-- Collect only when necessary + documented; must be optional for core features
-- Never log; RBAC + quarterly audit; absolute ban on third-party sharing
+## Authority
+- Tier 1 — Act autonomously: refactors, tests, docs, bug fixes, and small architecture-aligned improvements.
+- Tier 2 — Document, then act: schema or persistence changes; authentication, encryption, or security decisions; UX or accessibility changes; third-party integrations; infrastructure or deployment changes. Create or update a Decision file in `decisions/`.
+- Tier 3 — Stop and ask: SOGI data handling; credentials, secrets, or external system access; third-party data sharing; policy or legal questions; organizational direction; or any change that weakens privacy or security standards.
 
-## Accessibility (Non-Negotiable)
-- WCAG AA (4.5:1 contrast), ADHD-accessible, dark mode + low-stimulation palette
-- Sans-serif fonts, line-height 1.5–2.0, 2 clicks max from main page
-- Short sentences (8–15 words), chunked text, descriptive headings
+## Guardrails
+- Do not introduce telemetry, tracking, or third-party analytics.
+- Minimize attack surface and prefer privacy-preserving designs.
+- Treat all user data as sensitive by default, with heightened protection for SOGI-related data.
+- Keep security and accessibility requirements embedded in implementation, not deferred to later cleanup.
 
-## Project State
-- **Hosting**: Cloudflare Pages + DNS — domain: securepride.org
-- **Repo**: `mazze93/Secure-Pride` / local: `/Users/daedalus/Code/secure-pride`
-- **Outstanding**: `_headers`, `_redirects` files not yet created; Cloudflare Pages not configured
-- **Hardware**: MacBook Pro M3 8GB RAM — avoid memory-heavy tooling
+## Workflow
+- Before major changes, explain intent, constraints, and verification approach.
+- For security- or privacy-relevant work, document risks, tradeoffs, and affected data flows.
+- Include exact verification commands for code changes.
+- If context is incomplete, read the relevant project docs before acting.
