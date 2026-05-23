@@ -23,7 +23,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(429).json({ error: 'Too many submissions. Please try again later.' });
   }
 
- const { name, email, organization, message } = req.body ?? {};
+const { name, email, organization, message } = req.body ?? {};
 
   // 1. Type Check: Ensure all required fields are actual strings
   if (
@@ -44,7 +44,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!emailRegex.test(email)) {
     return res.status(400).json({ error: 'Invalid email address.' });
   }
-
   // Field length limits
   if (name.length > 100 || email.length > 254 || message.length > 5000) {
     return res.status(400).json({ error: 'Input exceeds allowed length.' });
