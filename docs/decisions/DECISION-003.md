@@ -2,64 +2,67 @@
 
 **Status**: Approved  
 **Date**: 2026-06-03  
-**Authority**: Tier 1 (Autonomous — infrastructure within existing platform)  
+**Authority**: Tier 1 (Autonomous — no server infrastructure, no data collection)  
 **Decision maker**: @mazze93  
 
 ## Context
 
-The site has a contact form (`ContactForm.tsx`) that POSTs to `/api/contact`. The form needs to deliver submissions to the operator's inbox. The operator uses Proton Mail for all Secure Pride email (`hello@securepride.org`, `security@securepride.org`, `mazze@securepride.org`) and the site is deployed on Cloudflare Pages.
+The site has a contact form (`ContactForm.tsx`) that needs to deliver submissions
+to the operator's inbox. The operator uses Proton Mail with `securepride.org` as
+a **custom domain** — Proton holds the MX records (`mail.protonmail.ch`,
+`mailsec.protonmail.ch`) and SPF record for the domain.
 
 ## Options Considered
 
 **Option A: Resend (transactional email API)**
-- Pros: Simple API key, widely used, reliable delivery, generous free tier
-- Cons: US-based third party processes every form submission; adds a vendor relationship; inconsistent with "no third-party data sharing" principle
+- Cons: US-based third party processes every submission; new vendor relationship;
+  contradicts "no third-party data sharing" principle.
 
-**Option B: Proton SMTP via Proton Bridge**
-- Pros: Stays within Proton's infrastructure
-- Cons: Proton Bridge is a desktop app — cannot be used from a serverless function; not viable
+**Option B: Cloudflare Email Workers (`send_email` binding)**
+- Explored as the primary path given existing CF infrastructure.
+- Blocked: CF Email Workers requires CF Email Routing to own the domain's MX
+  records. Enabling it would require deleting the Proton MX records, which would
+  break all `@securepride.org` custom domain email managed through Proton.
+  Not viable without a full email migration.
 
-**Option C: Cloudflare Email Workers + Email Routing (send_email binding)**
-- Pros: No new vendor; stays entirely within existing Cloudflare account; routes directly to Proton inbox; no API keys to manage; consistent with privacy-first posture; operator already uses this pattern for mazzeleczzare.com
-- Cons: Requires Email Routing enabled on securepride.org (already available free on CF); slightly more wrangler config than an API key
+**Option C: `mailto:` — client-side compose, no server**
+- The contact form fields (name, email, org, message) are composed client-side.
+- On submit, `window.location.href` is set to a pre-filled `mailto:hello@securepride.org`
+  URL. The user's own email client opens and sends the message from their address.
+- No data touches a server. Reply-To is automatic (sender's own email).
+- Fully consistent with the privacy-first posture.
 
 ## Decision
 
-Use **Option C: Cloudflare Email Workers** via the `send_email` binding.
+Use **Option C: client-side `mailto:` compose**.
 
 ## Rationale
 
-The project's non-negotiable is no third-party data sharing. Every contact form submission contains a name, email address, and message — routing that through a US third party (Resend) contradicts the core principle even if the submission is not SOGI data.
+No server processes submission data — the data never leaves the user's device
+until they send from their own email client. This is the strongest possible
+privacy outcome. It also has zero infrastructure dependencies, zero ops overhead,
+and works regardless of how the domain's MX records are configured.
 
-Cloudflare Email Routing keeps the data within the operator's existing CF account and delivers to Proton, which is already trusted for all org email. There is no new vendor relationship, no API key to rotate, and no additional surface area. The operator has already implemented this pattern successfully.
+The trade-off (requires the user to have an email client configured) is
+acceptable for this audience.
 
 ## Implementation
 
-**`functions/api/contact.ts`** — Cloudflare Pages Function (replaces `api/contact.ts` which used `@vercel/node`)
-- Imports `EmailMessage` from `cloudflare:email`
-- Builds a raw MIME message (no external library; plain `TextEncoder` + `ReadableStream`)
-- Sends FROM `contact-form@securepride.org` TO `hello@securepride.org` with `Reply-To` set to the submitter's address so replies go directly to them
-- Falls back to a `CONTACT_ENDPOINT` env var if `SEND_EMAIL` binding is absent
-- Falls back to console log for local dev
+**`src/components/ContactForm.tsx`**
+- Removed: server `fetch` to `/api/contact`, honeypot, consent checkbox,
+  loading/success states, `@vercel/node` dependency
+- Added: `mailto:` URL construction from form fields on submit; plain validation
+  error state only; disclosure note ("opens your email client, no data sent to
+  a server")
+- Button label: "Open in email client →"
 
-**`wrangler.toml`**
-```toml
-[[send_email]]
-name = "SEND_EMAIL"
-destination_address = "hello@securepride.org"
-```
+**`functions/api/contact.ts`** — removed (no longer needed)
 
-## Setup Required (one-time, in CF dashboard)
-
-1. **Email Routing** — confirm enabled on securepride.org (Workers & Pages → Email → Email Routing)
-2. **Destination address** — verify `hello@securepride.org` as a destination address in Email Routing
-3. **Sending address** — add `contact-form@securepride.org` as an allowed sending address, or configure it as a custom address in Email Routing
-
-No secrets, no API keys, no dashboard env vars needed beyond what wrangler.toml already defines.
+**`wrangler.toml`** — no `send_email` binding (not applicable)
 
 ## Consequences
 
-- Contact form submissions arrive in Proton inbox as emails from `contact-form@securepride.org`
-- Replying to the email goes directly to the submitter (Reply-To header)
-- No third-party processes submission data
-- If Email Routing is misconfigured, the function returns a 502 and logs the error — no silent data loss
+- Zero server-side contact form infrastructure to maintain or secure
+- `hello@securepride.org` Proton custom domain setup is undisturbed
+- `mailto:hello@securepride.org` direct link (already in Contact section)
+  serves as a second path for users who prefer not to use the form

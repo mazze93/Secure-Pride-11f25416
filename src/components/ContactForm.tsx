@@ -5,11 +5,7 @@ interface FormData {
   email: string;
   organization: string;
   message: string;
-  consent: boolean;
-  honeypot: string;
 }
-
-type FormStatus = 'idle' | 'loading' | 'success' | 'error';
 
 export default function ContactForm() {
   const [formData, setFormData] = useState<FormData>({
@@ -17,80 +13,46 @@ export default function ContactForm() {
     email: '',
     organization: '',
     message: '',
-    consent: false,
-    honeypot: '',
   });
 
-  const [status, setStatus] = useState<FormStatus>('idle');
-  const [statusMessage, setStatusMessage] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, type, value, checked } = e.target as HTMLInputElement;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value,
-    }));
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setError(null);
 
-    if (formData.honeypot) {
-      setStatus('success');
-      setStatusMessage('Thanks for your message!');
-      setTimeout(() => setStatus('idle'), 5000);
+    if (!formData.name.trim() || !formData.email.trim() || !formData.message.trim()) {
+      setError('Please fill in your name, email address, and message.');
       return;
     }
 
-    if (!formData.name || !formData.email || !formData.message || !formData.consent) {
-      setStatus('error');
-      setStatusMessage('Please fill in all required fields and accept the privacy policy.');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      setError('Please enter a valid email address.');
       return;
     }
 
-    setStatus('loading');
+    const subject = formData.organization
+      ? `Contact from ${formData.name} (${formData.organization})`
+      : `Contact from ${formData.name}`;
 
-    try {
-      const response = await fetch('/api/contact', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          organization: formData.organization,
-          message: formData.message,
-        }),
-      });
+    const body = [
+      `Name: ${formData.name}`,
+      `Email: ${formData.email}`,
+      formData.organization ? `Organization: ${formData.organization}` : null,
+      '',
+      formData.message,
+    ].filter(Boolean).join('\n');
 
-      if (response.ok) {
-        setStatus('success');
-        setStatusMessage("Thanks for your message! We'll be in touch soon.");
-        setFormData({ name: '', email: '', organization: '', message: '', consent: false, honeypot: '' });
-        setTimeout(() => setStatus('idle'), 5000);
-      } else {
-        setStatus('error');
-        setStatusMessage('Something went wrong. Please try again later.');
-      }
-    } catch {
-      setStatus('error');
-      setStatusMessage('Something went wrong. Please try again later.');
-    }
+    window.location.href = `mailto:hello@securepride.org?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   };
 
   return (
-    <form name="contact" onSubmit={handleSubmit} className="space-y-6" noValidate>
-      {/* Honeypot — hidden from real users */}
-      <input
-        type="text"
-        name="honeypot"
-        value={formData.honeypot}
-        onChange={handleChange}
-        style={{ display: 'none' }}
-        tabIndex={-1}
-        autoComplete="off"
-        aria-hidden="true"
-      />
-
+    <form onSubmit={handleSubmit} className="space-y-6" noValidate>
       <div>
         <label htmlFor="name" className="block text-sm font-heading font-bold text-text-primary mb-2">
           Your Name *
@@ -154,39 +116,22 @@ export default function ContactForm() {
         />
       </div>
 
-      <div className="flex items-start gap-3">
-        <input
-          type="checkbox"
-          id="consent"
-          name="consent"
-          checked={formData.consent}
-          onChange={handleChange}
-          required
-          className="mt-1 h-4 w-4 rounded border-dark-border accent-neon-cyan focus:outline-neon-cyan"
-        />
-        <label htmlFor="consent" className="text-sm text-text-secondary">
-          I agree that SecurePride may contact me about this request. We respect your privacy
-          and will never share your information with third parties. *
-        </label>
-      </div>
+      {error && (
+        <div className="rounded-lg bg-neon-pink/10 border border-neon-pink p-4 text-neon-pink text-sm" role="alert">
+          {error}
+        </div>
+      )}
 
-      {status === 'success' && (
-        <div className="rounded-lg bg-neon-cyan/10 border border-neon-cyan p-4 text-neon-cyan" role="alert">
-          {statusMessage}
-        </div>
-      )}
-      {status === 'error' && (
-        <div className="rounded-lg bg-neon-pink/10 border border-neon-pink p-4 text-neon-pink" role="alert">
-          {statusMessage}
-        </div>
-      )}
+      <p className="text-xs text-text-secondary opacity-60">
+        Clicking send opens your email client with this message pre-filled.
+        No data is sent to a server.
+      </p>
 
       <button
         type="submit"
-        disabled={status === 'loading'}
-        className="w-full rounded-lg bg-neon-cyan px-6 py-3 font-heading font-bold text-dark-bg transition-all duration-250 hover:shadow-glow disabled:opacity-50 disabled:cursor-not-allowed focus:outline-2 focus:outline-offset-2 focus:outline-neon-cyan"
+        className="w-full rounded-lg bg-neon-cyan px-6 py-3 font-heading font-bold text-dark-bg transition-all duration-250 hover:shadow-glow focus:outline-2 focus:outline-offset-2 focus:outline-neon-cyan"
       >
-        {status === 'loading' ? 'Sending...' : 'Send Message'}
+        Open in email client →
       </button>
     </form>
   );
