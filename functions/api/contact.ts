@@ -1,6 +1,8 @@
+import { EmailMessage } from 'cloudflare:email';
+
 interface Env {
+  SEND_EMAIL: { send(message: EmailMessage): Promise<void> };
   CONTACT_ENDPOINT?: string;
-  RESEND_API_KEY?: string;
 }
 
 interface ContactBody {
@@ -8,6 +10,35 @@ interface ContactBody {
   email?: unknown;
   organization?: unknown;
   message?: unknown;
+}
+
+function buildMimeStream({
+  from, to, replyTo, subject, text,
+}: {
+  from: string;
+  to: string;
+  replyTo: string;
+  subject: string;
+  text: string;
+}): ReadableStream {
+  const raw = [
+    `From: Secure Pride <${from}>`,
+    `To: ${to}`,
+    `Reply-To: ${replyTo}`,
+    `Subject: ${subject}`,
+    'MIME-Version: 1.0',
+    'Content-Type: text/plain; charset=utf-8',
+    '',
+    text,
+  ].join('\r\n');
+
+  const bytes = new TextEncoder().encode(raw);
+  return new ReadableStream({
+    start(controller) {
+      controller.enqueue(bytes);
+      controller.close();
+    },
+  });
 }
 
 export async function onRequestPost(context: {
@@ -47,8 +78,38 @@ export async function onRequestPost(context: {
   }
 
   const org = typeof organization === 'string' ? organization.slice(0, 200) : '';
+  const subject = org ? `Contact from ${name} (${org})` : `Contact from ${name}`;
+  const text = [
+    `Name: ${name}`,
+    `Email: ${email}`,
+    org ? `Organization: ${org}` : null,
+    '',
+    message,
+  ].filter(Boolean).join('\n');
 
-  // Option 1: Forward to a custom endpoint
+  // Primary: Cloudflare Email Workers — no third party, stays in CF infrastructure
+  if (env.SEND_EMAIL) {
+    try {
+      const msg = new EmailMessage(
+        'contact-form@securepride.org',
+        'hello@securepride.org',
+        buildMimeStream({
+          from: 'contact-form@securepride.org',
+          to: 'hello@securepride.org',
+          replyTo: email,
+          subject,
+          text,
+        }),
+      );
+      await env.SEND_EMAIL.send(msg);
+    } catch (err) {
+      console.error('[contact-form] send error:', err);
+      return Response.json({ error: 'Failed to send message. Please try again.' }, { status: 502 });
+    }
+    return Response.json({ ok: true });
+  }
+
+  // Fallback: forward to a custom endpoint if configured
   if (env.CONTACT_ENDPOINT) {
     try {
       const upstream = await fetch(env.CONTACT_ENDPOINT, {
@@ -65,49 +126,7 @@ export async function onRequestPost(context: {
     return Response.json({ ok: true });
   }
 
-  // Option 2: Send directly via Resend
-  if (env.RESEND_API_KEY) {
-    const subject = org
-      ? `Contact from ${name} (${org})`
-      : `Contact from ${name}`;
-
-    const text = [
-      `Name: ${name}`,
-      `Email: ${email}`,
-      org ? `Organization: ${org}` : null,
-      '',
-      message,
-    ].filter(Boolean).join('\n');
-
-    try {
-      const res = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${env.RESEND_API_KEY}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          from: 'contact-form@securepride.org',
-          to: 'hello@securepride.org',
-          reply_to: email,
-          subject,
-          text,
-        }),
-      });
-
-      if (!res.ok) {
-        console.error('Resend error', res.status);
-        return Response.json({ error: 'Failed to send message. Please try again.' }, { status: 502 });
-      }
-    } catch (err) {
-      console.error('Resend error', err);
-      return Response.json({ error: 'Failed to send message. Please try again.' }, { status: 502 });
-    }
-
-    return Response.json({ ok: true });
-  }
-
-  // No delivery method configured — log and acknowledge so the form still works during setup
+  // No delivery method bound — log only (expected during local dev)
   console.log('[contact-form]', { name, email, org, preview: message.slice(0, 80) });
   return Response.json({ ok: true });
 }

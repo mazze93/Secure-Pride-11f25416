@@ -4,3 +4,9 @@ pages_build_output_dir = "dist"
 
 [vars]
 NODE_VERSION = "22"
+
+# Contact form email delivery — routes through CF Email Routing to hello@securepride.org (Proton)
+# Requires Email Routing enabled on securepride.org in the CF dashboard
+[[send_email]]
+name = "SEND_EMAIL"
+destination_address = "hello@securepride.org"

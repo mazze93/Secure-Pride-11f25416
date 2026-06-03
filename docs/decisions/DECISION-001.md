@@ -34,7 +34,7 @@ Choose **Option A: Cloudflare Pages (static) with Cloudflare DNS** for the landi
 
 ## Implementation Plan
 1. **Repo & branch**: Use existing GitHub repo (`mazze93/Secure-Pride`); create `landing/` or `site/` directory with static build (e.g., plain HTML/CSS or static export from Astro/Next static mode—no SSR, no JS unless essential).
-2. **Content**: Craft privacy-first landing copy; avoid forms; provide mailto: contact (use a privacy-respecting inbox, e.g., Proton). No analytics/trackers. If metrics are ever needed, prefer self-hosted, anon-only tooling, but default to none.
+2. **Content**: Craft privacy-first landing copy. Contact is handled via a form backed by Cloudflare Email Workers (no third-party processor) delivering to Proton — see DECISION-003. No analytics/trackers. If metrics are ever needed, prefer self-hosted, anon-only tooling, but default to none.
 3. **Headers**: Add `_headers` file (or equivalent) for Cloudflare Pages to set:
    - `Strict-Transport-Security: max-age=31536000; includeSubDomains; preload`
    - `Content-Security-Policy: default-src 'self'; base-uri 'self'; form-action 'none'; frame-ancestors 'none'`
