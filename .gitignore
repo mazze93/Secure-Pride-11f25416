@@ -17,6 +17,7 @@ node_modules/
 .wrangler/
 dist/
 .cache/
+.astro/
 
 # Reports & generated output
 lighthouse-report.json
