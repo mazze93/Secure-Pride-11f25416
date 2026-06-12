@@ -28,7 +28,6 @@
     "@cloudflare/workers-types": "^4.20241230.0",
     "@types/node": "^20.12.12",
     "@types/react": "^18.2.45",
-    "@vercel/node": "^5.7.13",
     "typescript": "^5.4.5",
     "vitest": "^4.1.0"
   }
